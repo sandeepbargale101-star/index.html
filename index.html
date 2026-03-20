@@ -1,46 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Voter AI App</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voter AI App (Offline)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body {
-    font-family: Arial;
-    background: #f2f2f2;
-    padding: 10px;
-}
-.container {
-    max-width: 500px;
-    margin: auto;
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-}
-h2 {
-    text-align: center;
-}
-input, button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 8px;
-}
-button {
-    background: #007bff;
-    color: white;
-    border: none;
-}
-.card {
-    background: #eee;
-    padding: 10px;
-    margin-top: 5px;
-}
-.hidden {
-    display: none;
-}
+body { font-family: Arial; background:#f2f2f2; padding:10px;}
+.container { background:white; padding:15px; border-radius:10px;}
+input,button { width:100%; padding:10px; margin-top:8px;}
+button { background:#007bff; color:white; border:none;}
+.hidden { display:none; }
+.card { background:#eee; padding:10px; margin-top:5px;}
 </style>
 </head>
 
@@ -48,19 +19,17 @@ button {
 
 <div class="container">
 
-<h2>🗳️ Voter AI System</h2>
+<h2>🗳️ Voter AI System (Offline)</h2>
 
 <!-- LOGIN -->
 <div id="loginSection">
-<h3>Login</h3>
 <input id="username" placeholder="Username">
 <input id="password" type="password" placeholder="Password">
+
 <button onclick="login()">Login</button>
+<button onclick="register()">Register</button>
 
-<h4>OR Register</h4>
-<button onclick="register()">Create Account</button>
-
-<p id="loginStatus"></p>
+<p id="msg"></p>
 </div>
 
 <!-- APP -->
@@ -69,26 +38,15 @@ button {
 <button onclick="logout()">Logout</button>
 
 <h3>Upload PDF</h3>
-
 <input type="file" id="fileInput">
 
-<input type="number" id="startPage" placeholder="Start Page" value="1">
-<input type="number" id="endPage" placeholder="End Page" value="5">
-
-<button onclick="uploadFile()">Upload & Process</button>
+<button onclick="process()">Process File</button>
 
 <p id="status"></p>
 
-<hr>
-
 <h3>📊 Dashboard</h3>
-
 <div id="stats"></div>
-
 <canvas id="chart"></canvas>
-
-<br>
-<a id="downloadLink" target="_blank">Download Excel</a>
 
 </div>
 
@@ -96,149 +54,92 @@ button {
 
 <script>
 
-// 🔴 CHANGE THIS AFTER DEPLOYMENT
-const BASE_URL = "https://your-app.onrender.com";
+// 🔐 REGISTER (saved in browser)
+function register(){
+    let u = username.value;
+    let p = password.value;
 
-let token = "";
+    if(!u || !p){
+        msg.innerText = "Enter username & password";
+        return;
+    }
+
+    localStorage.setItem("user_"+u, p);
+    msg.innerText = "✅ Registered! Now login.";
+}
 
 // 🔐 LOGIN
-async function login() {
-    let username = document.getElementById("username").value;
-    let password = document.getElementById("password").value;
+function login(){
+    let u = username.value;
+    let p = password.value;
 
-    document.getElementById("loginStatus").innerText = "Logging in...";
+    let saved = localStorage.getItem("user_"+u);
 
-    try {
-        let res = await fetch(BASE_URL + "/login", {
-            method: "POST",
-            headers: {"Content-Type": "application/x-www-form-urlencoded"},
-            body: `username=${username}&password=${password}`
-        });
-
-        let data = await res.json();
-        console.log(data);
-
-        if (data.access_token) {
-            token = data.access_token;
-
-            localStorage.setItem("token", token);
-
-            showApp();
-        } else {
-            document.getElementById("loginStatus").innerText = "❌ Login Failed";
-        }
-
-    } catch (err) {
-        document.getElementById("loginStatus").innerText = "⚠️ Server not reachable";
+    if(saved === p){
+        localStorage.setItem("logged", u);
+        showApp();
+    } else {
+        msg.innerText = "❌ Invalid login";
     }
 }
 
-// 🆕 REGISTER
-async function register() {
-    let username = document.getElementById("username").value;
-    let password = document.getElementById("password").value;
-
-    try {
-        let res = await fetch(BASE_URL + "/register", {
-            method: "POST",
-            headers: {"Content-Type": "application/x-www-form-urlencoded"},
-            body: `username=${username}&password=${password}`
-        });
-
-        alert("✅ User created! Now login.");
-    } catch {
-        alert("❌ Register failed");
-    }
+// 🔓 LOGOUT
+function logout(){
+    localStorage.removeItem("logged");
+    location.reload();
 }
 
-// 📤 UPLOAD
-async function uploadFile() {
+// SHOW APP
+function showApp(){
+    loginSection.classList.add("hidden");
+    appSection.classList.remove("hidden");
+}
 
-    let file = document.getElementById("fileInput").files[0];
-    if (!file) {
+// PROCESS (SIMULATED DATA)
+function process(){
+
+    if(!fileInput.files.length){
         alert("Select file");
         return;
     }
 
-    let formData = new FormData();
-    formData.append("file", file);
-    formData.append("start_page", document.getElementById("startPage").value);
-    formData.append("end_page", document.getElementById("endPage").value);
+    status.innerText = "Processing...";
 
-    document.getElementById("status").innerText = "Processing...";
+    // 🔥 Simulated data (replace later with real OCR)
+    let data = {
+        total: 120,
+        male: 70,
+        female: 45,
+        other: 5
+    };
 
-    try {
-        let res = await fetch(BASE_URL + "/upload/", {
-            method: "POST",
-            headers: {
-                "Authorization": "Bearer " + token
-            },
-            body: formData
-        });
-
-        let data = await res.json();
-        console.log(data);
-
-        showResults(data);
-
-    } catch {
-        document.getElementById("status").innerText = "❌ Upload failed";
-    }
+    showResults(data);
 }
 
-// 📊 SHOW RESULTS
-function showResults(data) {
+// SHOW RESULTS
+function showResults(d){
 
-    document.getElementById("status").innerText = "✅ Done";
+    status.innerText = "✅ Done";
 
-    document.getElementById("stats").innerHTML = `
-        <div class="card">Total: ${data.total || 0}</div>
-        <div class="card">Male: ${data.male || 0}</div>
-        <div class="card">Female: ${data.female || 0}</div>
-        <div class="card">Other: ${data.other || 0}</div>
+    stats.innerHTML = `
+        <div class="card">Total: ${d.total}</div>
+        <div class="card">Male: ${d.male}</div>
+        <div class="card">Female: ${d.female}</div>
+        <div class="card">Other: ${d.other}</div>
     `;
 
-    if (data.file) {
-        document.getElementById("downloadLink").href = data.file;
-        document.getElementById("downloadLink").innerText = "Download Excel";
-    }
-
-    let ctx = document.getElementById("chart");
-
-    new Chart(ctx, {
+    new Chart(chart, {
         type: 'pie',
         data: {
-            labels: ["Male", "Female", "Other"],
-            datasets: [{
-                data: [
-                    data.male || 0,
-                    data.female || 0,
-                    data.other || 0
-                ]
-            }]
+            labels:["Male","Female","Other"],
+            datasets:[{data:[d.male,d.female,d.other]}]
         }
     });
 }
 
-// 🔓 LOGOUT
-function logout() {
-    localStorage.removeItem("token");
-    location.reload();
-}
-
-// 🔁 AUTO LOGIN
-function showApp() {
-    document.getElementById("loginSection").classList.add("hidden");
-    document.getElementById("appSection").classList.remove("hidden");
-}
-
-// On load
-window.onload = () => {
-    let saved = localStorage.getItem("token");
-    if (saved) {
-        token = saved;
-        showApp();
-    }
+// AUTO LOGIN
+if(localStorage.getItem("logged")){
+    showApp();
 }
 
 </script>
